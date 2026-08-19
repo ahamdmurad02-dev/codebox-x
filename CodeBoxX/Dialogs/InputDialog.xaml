@@ -1,0 +1,19 @@
+<Window x:Class="CodeBoxX.Dialogs.InputDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CodeBox X" Width="390" Height="170" WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="{DynamicResource PanelBackgroundBrush}" Foreground="{DynamicResource TextBrush}">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="PromptText" FontSize="14" Margin="0,0,0,10" TextWrapping="Wrap" />
+        <TextBox x:Name="ValueBox" Grid.Row="1" MinWidth="310" />
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,14,0,0">
+            <Button Content="Cancel" IsCancel="True" MinWidth="76" />
+            <Button Content="OK" Click="Ok_Click" Style="{StaticResource AccentButton}" MinWidth="76" Margin="8,1,1,1" IsDefault="True" />
+        </StackPanel>
+    </Grid>
+</Window>

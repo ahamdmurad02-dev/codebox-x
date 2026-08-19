@@ -1,0 +1,24 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+publish/
+
+# IDE and user-specific files
+.vs/
+*.user
+*.suo
+
+# Local diagnostic artifacts
+*.log
+NuGet.CodeBoxX.Config
+
+# Credentials and local secret configuration
+.env
+.env.*
+!.env.example
+secrets.json
+secrets.*.json
+appsettings.Development.json
+appsettings.Local.json
+*.pfx
+*.snk

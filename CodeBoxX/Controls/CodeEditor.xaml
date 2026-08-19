@@ -1,0 +1,20 @@
+<UserControl x:Class="CodeBoxX.Controls.CodeEditor"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="{DynamicResource EditorBackgroundBrush}">
+    <Grid Background="{DynamicResource EditorBackgroundBrush}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="52" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Border Grid.Column="0" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+            <TextBox x:Name="LineNumbersBox" FontFamily="Cascadia Mono, Consolas" FontSize="14" Foreground="{DynamicResource MutedTextBrush}"
+                     Background="Transparent" BorderThickness="0" Padding="5,8,7,8" IsReadOnly="True" IsHitTestVisible="False"
+                     TextAlignment="Right" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Hidden" />
+        </Border>
+        <RichTextBox x:Name="EditorBox" Grid.Column="1" FontFamily="Cascadia Mono, Consolas" FontSize="14" Foreground="{DynamicResource TextBrush}"
+                     Background="{DynamicResource EditorBackgroundBrush}" BorderThickness="0" Padding="10,8,12,8" AcceptsTab="True"
+                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" AllowDrop="True"
+                     TextChanged="EditorBox_TextChanged" SelectionChanged="EditorBox_SelectionChanged" KeyDown="EditorBox_KeyDown" Drop="EditorBox_Drop" DragOver="EditorBox_DragOver" />
+    </Grid>
+</UserControl>
