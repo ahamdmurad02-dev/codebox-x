@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     private AiAssistantWindow? _aiAssistantWindow;
     private string? _workspacePath;
     private Process? _activeProcess;
+    private ActiveRunRequest? _lastRunRequest;
     private bool _isFullScreen;
     private WindowState _priorWindowState;
     private WindowStyle _priorWindowStyle;
@@ -336,7 +337,7 @@ public partial class MainWindow : Window
 
     private void OpenFile_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog { Title = "Open a file", Filter = "Code and text files|*.py;*.cs;*.cpp;*.c;*.h;*.hpp;*.java;*.js;*.ts;*.json;*.xml;*.sql;*.lua;*.gd;*.md;*.txt|All files|*.*", Multiselect = true };
+        var dialog = new OpenFileDialog { Title = "Open a file", Filter = "Code and text files|*.py;*.cs;*.csproj;*.cpp;*.cc;*.cxx;*.c;*.h;*.hpp;*.java;*.js;*.ts;*.json;*.xml;*.sql;*.lua;*.gd;*.md;*.txt|All files|*.*", Multiselect = true };
         if (dialog.ShowDialog(this) == true) foreach (var file in dialog.FileNames) OpenDocument(file);
     }
 
@@ -531,7 +532,7 @@ public partial class MainWindow : Window
         {
             Title = "Save file as",
             FileName = document.FilePath is null ? document.FileNameHint : Path.GetFileName(document.FilePath),
-            Filter = "All files|*.*|Python|*.py|C#|*.cs|C++|*.cpp|JavaScript|*.js|TypeScript|*.ts|JSON|*.json|HTML|*.html|Markdown|*.md|Text|*.txt"
+            Filter = "All files|*.*|Python|*.py|C# source|*.cs|C# project|*.csproj|C++ source|*.cpp;*.cc;*.cxx|GDScript|*.gd|JavaScript|*.js|TypeScript|*.ts|JSON|*.json|HTML|*.html|Markdown|*.md|Text|*.txt"
         };
         if (dialog.ShowDialog(this) != true) return false;
 
@@ -618,26 +619,80 @@ public partial class MainWindow : Window
         StatusText.Text = count == 0 ? "No matches replaced" : $"Replaced {count} occurrence(s)";
     }
 
-    private async void Run_Click(object sender, RoutedEventArgs e)
+    private async void Run_Click(object sender, RoutedEventArgs e) => await RunActiveFileAsync();
+
+    private async void Restart_Click(object sender, RoutedEventArgs e)
     {
-        if (ActiveDocument is null) { AppendOutput("No active file to run.\n", OutputKind.Warning); return; }
-        if (!SaveDocument(ActiveDocument) || ActiveDocument.FilePath is null) return;
-        var command = LanguageService.GetRunCommand(ActiveDocument.FilePath);
-        if (string.IsNullOrWhiteSpace(command)) { AppendOutput($"No run command is configured for {ActiveDocument.LanguageId}.\n", OutputKind.Warning); return; }
-        await ExecuteCommandAsync(command, Path.GetDirectoryName(ActiveDocument.FilePath), "Run");
+        if (_activeProcess is { HasExited: false } runningProcess)
+        {
+            StopActiveProcess("Restarting active process.");
+            for (var attempt = 0; attempt < 20 && !runningProcess.HasExited; attempt++) await Task.Delay(50);
+            if (!runningProcess.HasExited)
+            {
+                AppendOutput("The previous process is still stopping. Try Restart again in a moment.\n", OutputKind.Warning);
+                return;
+            }
+        }
+
+        if (_lastRunRequest is not null)
+        {
+            await ExecuteCommandAsync(_lastRunRequest.Command, _lastRunRequest.WorkingDirectory, _lastRunRequest.DisplayName);
+            return;
+        }
+
+        await RunActiveFileAsync();
     }
 
-    private void Stop_Click(object sender, RoutedEventArgs e)
+    private async Task RunActiveFileAsync()
     {
-        try { if (_activeProcess is { HasExited: false }) { _activeProcess.Kill(entireProcessTree: true); AppendOutput("\nProcess stopped.\n", OutputKind.Warning); } }
-        catch (Exception ex) { AppendOutput($"Could not stop process: {ex.Message}\n", OutputKind.Error); }
+        if (ActiveDocument is null)
+        {
+            AppendOutput("No active file to run.\n", OutputKind.Warning);
+            return;
+        }
+
+        if (!SaveDocument(ActiveDocument) || ActiveDocument.FilePath is null) return;
+        var resolution = ActiveFileRunService.Resolve(ActiveDocument.FilePath, _workspacePath);
+        if (!resolution.IsSuccess || resolution.Request is null)
+        {
+            OutputRow.Height = new GridLength(190);
+            AppendOutput($"[Run Active File] {resolution.Message}\n", OutputKind.Warning);
+            StatusText.Text = "Runtime or compiler required";
+            MessageBox.Show(resolution.Message, "Run Active File", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        _lastRunRequest = resolution.Request;
+        await ExecuteCommandAsync(resolution.Request.Command, resolution.Request.WorkingDirectory, resolution.Request.DisplayName);
+    }
+
+    private void Stop_Click(object sender, RoutedEventArgs e) => StopActiveProcess("Process stopped.");
+
+    private void StopActiveProcess(string message)
+    {
+        try
+        {
+            if (_activeProcess is not { HasExited: false })
+            {
+                AppendOutput("No active run process is running.\n", OutputKind.Info);
+                return;
+            }
+
+            _activeProcess.Kill(entireProcessTree: true);
+            AppendOutput($"\n{message}\n", OutputKind.Warning);
+            StatusText.Text = "Process stopped";
+        }
+        catch (Exception ex)
+        {
+            AppendOutput($"Could not stop process: {ex.Message}\n", OutputKind.Error);
+        }
     }
 
     private async Task ExecuteCommandAsync(string command, string? workingDirectory, string label)
     {
         if (_activeProcess is { HasExited: false }) { AppendOutput("A process is already running. Stop it before starting another command.\n", OutputKind.Warning); return; }
         AppendOutput($"\n[{label}] {command}\n", OutputKind.Info);
-        var process = new Process { StartInfo = new ProcessStartInfo { FileName = "cmd.exe", Arguments = $"/c {command}", WorkingDirectory = !string.IsNullOrWhiteSpace(workingDirectory) && Directory.Exists(workingDirectory) ? workingDirectory : Environment.CurrentDirectory, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true, StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8 }, EnableRaisingEvents = true };
+        var process = new Process { StartInfo = new ProcessStartInfo { FileName = "cmd.exe", Arguments = $"/d /s /c \"{command}\"", WorkingDirectory = !string.IsNullOrWhiteSpace(workingDirectory) && Directory.Exists(workingDirectory) ? workingDirectory : Environment.CurrentDirectory, UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true, StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8 }, EnableRaisingEvents = true };
         _activeProcess = process;
         process.OutputDataReceived += (_, args) => { if (args.Data is not null) Dispatcher.Invoke(() => AppendOutput(args.Data + Environment.NewLine, OutputKind.Normal)); };
         process.ErrorDataReceived += (_, args) => { if (args.Data is not null) Dispatcher.Invoke(() => AppendOutput(args.Data + Environment.NewLine, OutputKind.Error)); };
@@ -1001,16 +1056,19 @@ public partial class MainWindow : Window
     {
         if (!_isFullScreen) { _priorWindowState = WindowState; _priorWindowStyle = WindowStyle; WindowStyle = WindowStyle.None; WindowState = WindowState.Maximized; _isFullScreen = true; } else { WindowStyle = _priorWindowStyle; WindowState = _priorWindowState; _isFullScreen = false; }
     }
-    private void Shortcuts_Click(object sender, RoutedEventArgs e) => MessageBox.Show("Ctrl+N   New file\nCtrl+O   Open file\nCtrl+Shift+O   Open folder\nCtrl+S   Save\nCtrl+Shift+S   Save as\nCtrl+W   Close tab\nCtrl+H   Find / replace\nCtrl+Z / Ctrl+Y   Undo / redo\nF5   Run active file\nShift+F5   Stop process\nF11   Full screen\nCtrl+`   Focus terminal", "Keyboard Shortcuts", MessageBoxButton.OK, MessageBoxImage.Information);
+    private void Shortcuts_Click(object sender, RoutedEventArgs e) => MessageBox.Show("Ctrl+N   New file\nCtrl+O   Open file\nCtrl+Shift+O   Open folder\nCtrl+S   Save\nCtrl+Shift+S   Save as\nCtrl+W   Close tab\nCtrl+H   Find / replace\nCtrl+Z / Ctrl+Y   Undo / redo\nF5   Run active file\nCtrl+F5   Restart active run\nShift+F5   Stop process\nF11   Full screen\nCtrl+`   Focus terminal", "Keyboard Shortcuts", MessageBoxButton.OK, MessageBoxImage.Information);
     private void About_Click(object sender, RoutedEventArgs e) => MessageBox.Show("CodeBox X\nVersion 1.2.1\nA lightweight local Windows development workspace.", "About CodeBox X", MessageBoxButton.OK, MessageBoxImage.Information);
     private void Exit_Click(object sender, RoutedEventArgs e) => Close();
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
-        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        if (e.Key == Key.F5 && Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) { Stop_Click(this, new RoutedEventArgs()); e.Handled = true; }
+        else if (e.Key == Key.F5 && Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) { Restart_Click(this, new RoutedEventArgs()); e.Handled = true; }
+        else if (e.Key == Key.F5) { Run_Click(this, new RoutedEventArgs()); e.Handled = true; }
+        else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
         {
             if (e.Key == Key.N) { CreateNewDocument(); e.Handled = true; } else if (e.Key == Key.O && Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) { OpenFolder_Click(this, new RoutedEventArgs()); e.Handled = true; } else if (e.Key == Key.O) { OpenFile_Click(this, new RoutedEventArgs()); e.Handled = true; } else if (e.Key == Key.S && Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) { SaveAs_Click(this, new RoutedEventArgs()); e.Handled = true; } else if (e.Key == Key.S) { Save_Click(this, new RoutedEventArgs()); e.Handled = true; } else if (e.Key == Key.W) { CloseActiveDocument(); e.Handled = true; } else if (e.Key == Key.H) { ToggleSearch_Click(this, new RoutedEventArgs()); e.Handled = true; } else if (e.Key == Key.Z) { ActiveEditor?.Undo(); e.Handled = true; } else if (e.Key == Key.Y) { ActiveEditor?.Redo(); e.Handled = true; } else if (e.Key == Key.Oem3) { TerminalCommandBox.Focus(); e.Handled = true; }
         }
-        else if (e.Key == Key.F5 && Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) { Stop_Click(this, new RoutedEventArgs()); e.Handled = true; } else if (e.Key == Key.F5) { Run_Click(this, new RoutedEventArgs()); e.Handled = true; } else if (e.Key == Key.F11) { ToggleFullScreen(); e.Handled = true; } else if (e.Key == Key.Escape && _isFullScreen) { ToggleFullScreen(); e.Handled = true; }
+        else if (e.Key == Key.F11) { ToggleFullScreen(); e.Handled = true; } else if (e.Key == Key.Escape && _isFullScreen) { ToggleFullScreen(); e.Handled = true; }
     }
     private void Window_DragOver(object sender, DragEventArgs e) { e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None; e.Handled = true; }
     private void Window_Drop(object sender, DragEventArgs e)

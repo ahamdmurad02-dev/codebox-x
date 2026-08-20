@@ -4,7 +4,7 @@ public static class LanguageService
 {
     private static readonly Dictionary<string, string> Languages = new(StringComparer.OrdinalIgnoreCase)
     {
-        [".py"] = "Python", [".cs"] = "C#", [".cpp"] = "C++", [".cxx"] = "C++", [".cc"] = "C++", [".c"] = "C++",
+        [".py"] = "Python", [".cs"] = "C#", [".csproj"] = "C#", [".cpp"] = "C++", [".cxx"] = "C++", [".cc"] = "C++", [".c"] = "C++",
         [".h"] = "C++", [".hpp"] = "C++", [".java"] = "Java", [".js"] = "JavaScript", [".mjs"] = "JavaScript",
         [".ts"] = "TypeScript", [".tsx"] = "TypeScript", [".json"] = "JSON", [".xml"] = "XML", [".xaml"] = "XML",
         [".sql"] = "SQL", [".lua"] = "Lua", [".gd"] = "GDScript", [".md"] = "Markdown", [".markdown"] = "Markdown",

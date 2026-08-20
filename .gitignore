@@ -22,3 +22,8 @@ appsettings.Development.json
 appsettings.Local.json
 *.pfx
 *.snk
+
+# Release artifacts are distributed through GitHub Releases, not source commits
+Installer/*.exe
+release-staging/
+*.zip
