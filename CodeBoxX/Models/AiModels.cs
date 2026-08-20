@@ -8,7 +8,9 @@ public enum AiEditorAction
     Refactor,
     Generate,
     AddComments,
-    ProjectQuestion
+    ProjectQuestion,
+    AgentChat,
+    AgentPlan
 }
 
 public enum GeminiFailureKind

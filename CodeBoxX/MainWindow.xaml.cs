@@ -28,6 +28,7 @@ public partial class MainWindow : Window
     private readonly MpmService _mpm = new();
     private readonly WebsitePublishService _websitePublisher = new();
     private readonly UpdateService _updates = new();
+    private readonly ProjectAgentService _agent = new();
     private long _visibleTerminalSessionId;
     private readonly ExtensionMarketplaceService _extensions;
     private readonly GeminiService _gemini;
@@ -37,6 +38,7 @@ public partial class MainWindow : Window
     private MpmWindow? _mpmWindow;
     private MarketplaceWindow? _marketplaceWindow;
     private AiAssistantWindow? _aiAssistantWindow;
+    private AgentWindow? _agentWindow;
     private string? _workspacePath;
     private Process? _activeProcess;
     private ActiveRunRequest? _lastRunRequest;
@@ -247,6 +249,21 @@ public partial class MainWindow : Window
 
     private void AiSettings_Click(object sender, RoutedEventArgs e) => OpenAiSettings();
 
+    private void Agent_Click(object sender, RoutedEventArgs e)
+    {
+        _agentWindow ??= new AgentWindow(
+            _gemini,
+            _agent,
+            () => _workspacePath,
+            () => _settings.HasGeminiApiKey,
+            FocusAgentTerminal,
+            RunActiveFileAsync,
+            BuildAgentWorkspaceAsync,
+            PrepareAgentApply,
+            AgentWorkspaceChanged) { Owner = this };
+        _agentWindow.ShowAgent();
+    }
+
     private void OpenAiSettings()
     {
         var settingsWindow = new AiSettingsWindow(_settings, _gemini) { Owner = this };
@@ -296,6 +313,85 @@ public partial class MainWindow : Window
         ActiveEditor.InsertOrReplaceSelection(code);
         QueueDiagnostics();
         StatusText.Text = "AI-generated code inserted.";
+    }
+
+    private void FocusAgentTerminal()
+    {
+        if (ProblemsPanel.Visibility == Visibility.Visible) ToggleProblems_Click(this, new RoutedEventArgs());
+        if (!_terminal.IsRunning) StartNewTerminal();
+        OutputRow.Height = new GridLength(190);
+        TerminalCommandBox.Focus();
+    }
+
+    private async Task BuildAgentWorkspaceAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_workspacePath) || !Directory.Exists(_workspacePath))
+        {
+            const string message = "Open a workspace folder before asking the Agent to build it.";
+            AppendOutput(message + Environment.NewLine, OutputKind.Warning);
+            StatusText.Text = message;
+            return;
+        }
+
+        var project = Directory.EnumerateFiles(_workspacePath, "*.csproj", SearchOption.AllDirectories)
+            .FirstOrDefault(path => !path.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+                && !path.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
+        if (project is null)
+        {
+            const string message = "No .NET project file was found in the current workspace. The Agent did not run a build command.";
+            AppendOutput(message + Environment.NewLine, OutputKind.Warning);
+            StatusText.Text = message;
+            return;
+        }
+
+        await ExecuteCommandAsync($"dotnet build \"{project}\"", Path.GetDirectoryName(project), "Agent Build");
+    }
+
+    private bool PrepareAgentApply(IReadOnlyList<string> relativePaths)
+    {
+        if (string.IsNullOrWhiteSpace(_workspacePath) || !Directory.Exists(_workspacePath)) return false;
+        var root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(_workspacePath)) + Path.DirectorySeparatorChar;
+        var changedPaths = relativePaths.Select(path => Path.GetFullPath(Path.Combine(root, path))).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var dirtyDocuments = _documents.Where(document => document.IsDirty && document.FilePath is not null && changedPaths.Contains(Path.GetFullPath(document.FilePath))).ToList();
+        if (dirtyDocuments.Count == 0) return true;
+
+        var names = string.Join(Environment.NewLine, dirtyDocuments.Select(document => "• " + document.FileNameHint));
+        if (MessageBox.Show($"The Agent proposal affects unsaved open files. Save your changes before applying the Agent proposal?\n\n{names}", "Save Before Agent Changes", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+        {
+            StatusText.Text = "Agent changes were not applied because affected open files were not saved.";
+            return false;
+        }
+
+        return dirtyDocuments.All(document => SaveDocument(document));
+    }
+
+    private void AgentWorkspaceChanged(IReadOnlyList<string> changedPaths)
+    {
+        var changed = changedPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var tab in OpenTabs.Items.OfType<TabItem>().ToList())
+        {
+            if (tab.Tag is not EditorDocument document || string.IsNullOrWhiteSpace(document.FilePath) || !changed.Contains(Path.GetFullPath(document.FilePath))) continue;
+            if (!File.Exists(document.FilePath))
+            {
+                CloseDocument(tab, promptToSave: false);
+                continue;
+            }
+
+            try
+            {
+                document.Text = File.ReadAllText(document.FilePath, document.Encoding);
+                document.MarkSaved();
+                (tab.Content as CodeEditor)?.SetText(document.Text);
+            }
+            catch (Exception ex)
+            {
+                AppendOutput($"Agent changed '{document.FileNameHint}', but CodeBox X could not refresh the open editor: {ex.Message}{Environment.NewLine}", OutputKind.Warning);
+            }
+        }
+
+        RefreshExplorer();
+        QueueDiagnostics();
+        StatusText.Text = "Agent workspace changes refreshed.";
     }
 
     private void NewFile_Click(object sender, RoutedEventArgs e) => CreateNewDocument();

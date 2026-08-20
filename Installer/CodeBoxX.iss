@@ -2,7 +2,7 @@
 ; Builds a real per-machine installer from the self-contained WPF publish output.
 
 #define AppName "CodeBox X"
-#define AppVersion "1.2.1"
+#define AppVersion "1.2.2"
 #define AppPublisher "CodeBox X"
 #define AppExeName "CodeBoxX.exe"
 #ifndef PublishDir

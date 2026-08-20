@@ -2,6 +2,22 @@
 
 All notable changes to CodeBox X are documented in this file.
 
+## CodeBox X v1.2.2 — CodeBox X Agent
+
+### Added
+
+| Area | Change |
+|---|---|
+| Native Agent | Added **CodeBox X Agent** in the Explorer sidebar, main toolbar, welcome actions, and View menu. The native panel provides Agent chat, model/API status, cancellation, workspace permission, project search, analysis, reviewed change plans, Accept/Reject, a modified-files list, Clear Chat, and one-step undo. |
+| Workspace privacy | Workspace access is opt-in. Before Gemini receives project context, CodeBox X excludes protected directories, binary/build artifacts, `.env` and private-key files, and settings; values resembling API keys, tokens, passwords, and secrets are redacted. |
+| Safe file changes | Gemini returns a structured plan only. CodeBox X validates every relative path, blocks protected/out-of-workspace/binary targets, shows a human-readable file list and rationale, and writes files only after **Accept Changes**. Deletions and project-wide proposals require additional confirmation. |
+| Reversal and integration | Accepted edits retain one-step prior-file backups for **Undo Agent Changes**. Open tabs refresh after Agent writes or restores files; deleted open files close safely, the Explorer refreshes, and diagnostics are queued again. |
+| Agent tools | Added confirmed Agent access to project search, integrated terminal focus, Run Active File, and detected .NET builds. The Agent never sends terminal commands, installs packages, or runs builds without the user’s confirmation. |
+
+### Validation
+
+The v1.2.2 Agent implementation compiles as a Windows Release build with **0 warnings and 0 errors**. Its local Agent service validates workspace boundaries, redaction, proposal parsing, accepted create/modify/delete handling, rejection behavior, and one-step undo. Gemini uses the existing DPAPI-protected API key provider and continues to present missing-key, authentication, network, rate-limit, timeout, safety, and empty-response errors without revealing credentials.
+
 ## CodeBox X v1.2.1 — Active File Execution and Secure Updater
 
 ### Added

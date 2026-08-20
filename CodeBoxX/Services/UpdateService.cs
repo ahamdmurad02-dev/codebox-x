@@ -22,7 +22,7 @@ public sealed class UpdateService : IDisposable
     {
         _ownsHttpClient = httpClient is null;
         _httpClient = httpClient ?? new HttpClient(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(30) };
-        if (!_httpClient.DefaultRequestHeaders.UserAgent.Any()) _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("CodeBoxX-Updater/1.2.1");
+        if (!_httpClient.DefaultRequestHeaders.UserAgent.Any()) _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("CodeBoxX-Updater/1.2.2");
         if (!_httpClient.DefaultRequestHeaders.Accept.Any()) _httpClient.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
 

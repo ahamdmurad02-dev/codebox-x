@@ -1,0 +1,91 @@
+<Window x:Class="CodeBoxX.Views.AgentWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CodeBox X Agent" Height="720" Width="760" MinHeight="560" MinWidth="620"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource WindowBackgroundBrush}"
+        Foreground="{DynamicResource TextBrush}" Closing="AgentWindow_Closing">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0">
+            <StackPanel>
+                <TextBlock Text="CODEBOX X AGENT" FontSize="20" FontWeight="SemiBold" />
+                <TextBlock Text="Gemini-assisted project help with user-approved workspace access and reviewable edits." Foreground="{DynamicResource MutedTextBrush}" Margin="0,4,0,0" TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
+                <TextBlock x:Name="ModelStatusText" Text="Gemini 3.1 Flash-Lite" HorizontalAlignment="Right" FontWeight="SemiBold" />
+                <TextBlock x:Name="ConnectionStatusText" Text="Checking AI configuration…" HorizontalAlignment="Right" Foreground="{DynamicResource MutedTextBrush}" FontSize="12" />
+            </StackPanel>
+        </DockPanel>
+
+        <Border Grid.Row="1" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,15,0,10">
+            <StackPanel>
+                <TextBlock x:Name="WorkspaceStatusText" Text="Workspace access is not granted. The Agent cannot read project files until you allow it." TextWrapping="Wrap" Foreground="{DynamicResource MutedTextBrush}" />
+                <WrapPanel Margin="0,9,0,0">
+                    <Button Content="Allow Workspace Read" Click="AllowWorkspaceRead_Click" ToolTip="Grant read-only workspace context to the Agent" />
+                    <Button Content="Search Project" Click="SearchProject_Click" ToolTip="Search approved workspace files for the text in the Agent input" />
+                    <Button Content="Focus Terminal" Click="FocusTerminal_Click" ToolTip="Focus the integrated terminal; the Agent never sends commands automatically" />
+                    <Button Content="Run Active File" Click="RunActiveFile_Click" ToolTip="Run the current file using the normal CodeBox X command" />
+                    <Button Content="Build Workspace" Click="BuildWorkspace_Click" ToolTip="Build a detected .NET project after confirmation" />
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+
+        <WrapPanel Grid.Row="2" Margin="0,0,0,10">
+            <Button Content="Analyze Workspace" Click="AnalyzeWorkspace_Click" ToolTip="Ask Gemini to analyze user-approved project context" />
+            <Button x:Name="PlanChangesButton" Content="Plan Changes" Style="{StaticResource AccentButton}" Click="PlanChanges_Click" ToolTip="Ask Gemini for a reviewable proposal; no file is changed yet" />
+            <Button x:Name="AcceptChangesButton" Content="Accept Changes" Click="AcceptChanges_Click" IsEnabled="False" ToolTip="Apply the reviewed Agent proposal" />
+            <Button x:Name="RejectChangesButton" Content="Reject Changes" Click="RejectChanges_Click" IsEnabled="False" ToolTip="Discard the reviewed Agent proposal" />
+            <Button x:Name="UndoChangesButton" Content="Undo Agent Changes" Click="UndoChanges_Click" ToolTip="Restore the most recently accepted Agent changes" />
+            <Button Content="Clear Chat" Click="ClearChat_Click" />
+        </WrapPanel>
+
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="230" />
+            </Grid.ColumnDefinitions>
+            <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="8" Margin="0,0,10,0">
+                <ListBox x:Name="ChatList" BorderThickness="0" Background="Transparent" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="9" Margin="0,0,0,7" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="5">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <TextBlock Text="{Binding Header}" FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding Timestamp, StringFormat={}{0:t}}" DockPanel.Dock="Right" Foreground="{DynamicResource MutedTextBrush}" FontSize="11" />
+                                    </DockPanel>
+                                    <TextBlock Text="{Binding Text}" TextWrapping="Wrap" Margin="0,5,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+            <Border Grid.Column="1" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="10">
+                <StackPanel>
+                    <TextBlock Text="MODIFIED FILES" FontWeight="SemiBold" FontSize="12" />
+                    <TextBlock x:Name="ProposalSummaryText" Text="No changes are waiting for review." Foreground="{DynamicResource MutedTextBrush}" TextWrapping="Wrap" FontSize="12" Margin="0,5,0,8" />
+                    <ListBox x:Name="ModifiedFilesList" BorderThickness="0" Background="Transparent" DisplayMemberPath="DisplayName" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="4" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="9" Margin="0,10,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <TextBox x:Name="PromptBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="54" MaxHeight="120" VerticalScrollBarVisibility="Auto" ToolTip="Ask the Agent, enter a project search term, or describe the changes you want proposed" />
+                <Button x:Name="SendButton" Grid.Column="1" Content="Send" Style="{StaticResource AccentButton}" Click="Send_Click" VerticalAlignment="Stretch" Margin="8,0,0,0" />
+                <Button x:Name="StopButton" Grid.Column="2" Content="Stop" Click="Stop_Click" VerticalAlignment="Stretch" Margin="6,0,0,0" IsEnabled="False" />
+            </Grid>
+        </Border>
+        <TextBlock x:Name="StatusText" Grid.Row="5" Text="Ready. Agent changes always require review and acceptance." Foreground="{DynamicResource MutedTextBrush}" Margin="2,8,2,0" TextWrapping="Wrap" />
+    </Grid>
+</Window>

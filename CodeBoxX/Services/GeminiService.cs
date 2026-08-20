@@ -52,7 +52,7 @@ public sealed class GeminiService : IDisposable
             {
                 systemInstruction = new
                 {
-                    parts = new[] { new { text = "You are CodeBox X AI Assistant. Help with local software development. Be concise, correct, and explain uncertainty. Never claim to have executed code or accessed files you were not given. For code transformations, return the complete replacement code in one fenced code block followed by a short explanation." } }
+                    parts = new[] { new { text = "You are CodeBox X AI Assistant. Help with local software development. Be concise, correct, and explain uncertainty. Never claim to have executed code, run commands, or accessed files you were not given. Never request, reveal, create, or echo API keys, passwords, tokens, secrets, or private credentials. For code transformations, return the complete replacement code in one fenced code block followed by a short explanation. When the request explicitly asks for an Agent change plan, return only the requested JSON object with no Markdown; it will be reviewed by the user before any file operation." } }
                 },
                 contents = new[]
                 {
@@ -117,6 +117,8 @@ public sealed class GeminiService : IDisposable
             AiEditorAction.Generate => "Generate production-ready code that satisfies the requested description. Return only the generated code in a fenced code block, then concise notes.",
             AiEditorAction.AddComments => "Add clear, useful comments to the selected code without changing its behavior. Return a complete replacement.",
             AiEditorAction.ProjectQuestion => "Answer the project question using only the provided project summary and current-file context. State when information is unavailable.",
+            AiEditorAction.AgentChat => "Act as a project Agent. Answer using only the user-approved workspace context provided. Explain findings and ask the user to request a change plan before any file modification. Do not claim changes were applied.",
+            AiEditorAction.AgentPlan => "Act as a safe project Agent. Return only one valid JSON object, with no Markdown and this exact shape: {\"summary\":\"short summary\",\"explanation\":\"what and why\",\"changes\":[{\"operation\":\"Create|Modify|Delete\",\"path\":\"relative/path.ext\",\"content\":\"complete content for Create/Modify, empty for Delete\",\"reason\":\"why this change is needed\"}]}. Use only relative workspace paths from the provided context. If the approved workspace is empty, you may propose new safe files that directly satisfy the user request. Propose the smallest safe set of changes. Do not propose package installation, terminal commands, generated binaries, secrets, or changes outside the workspace. Never say that changes were applied.",
             _ => "Answer the developer question using the provided code and project context."
         };
         var project = string.IsNullOrWhiteSpace(context.ProjectSummary) ? string.Empty : $"\nProject summary:\n{TrimForRequest(context.ProjectSummary, 12_000)}";

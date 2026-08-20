@@ -1,6 +1,6 @@
 # CodeBox X
 
-**CodeBox X v1.2.1** is a native WPF code editor and lightweight development workspace for **Windows 10 and Windows 11**. It is a local-first desktop application, not a web or mobile application. Projects, editor settings, terminal commands, and optional AI credentials remain on the user’s Windows device.
+**CodeBox X v1.2.2** is a native WPF code editor and lightweight development workspace for **Windows 10 and Windows 11**. It is a local-first desktop application, not a web or mobile application. Projects, editor settings, terminal commands, and optional AI credentials remain on the user’s Windows device.
 
 > CodeBox X does not bundle language runtimes, compilers, package credentials, or Gemini API keys. A required tool is detected when **Run Active File** is used and a clear guidance message is shown when it is unavailable.
 
@@ -15,6 +15,7 @@
 | Preview | Desktop HTML/Markdown/JSON/XML preview using WebView2 and a dedicated Python Live Preview panel with Run, Stop, Restart, status, stdout, and stderr. |
 | Developer tools | MPM package management for Python, Node.js/TypeScript, and .NET; local extension Marketplace; syntax themes; linters; and Publish Website ZIP packaging. |
 | AI Assistant | Optional Gemini 3.1 Flash-Lite Assistant with local Windows DPAPI key protection. API keys are never included in source, logs, terminal output, or release packages. |
+| CodeBox X Agent | Native Gemini-powered project Agent with explicit workspace-read permission, redacted project context, search, analysis, reviewable file-change plans, Accept/Reject, modified-files list, and one-step undo. The Agent never auto-applies a change or sends terminal commands without user confirmation. |
 | Updates | Native **Update CodeBox X** controls in Help, Settings, and About; official GitHub Release version comparison, release notes, download progress, SHA-256 verification, Windows installer validation, and safe installer handoff. |
 
 ## Run Active File
@@ -37,6 +38,12 @@ Language execution requires only the tool relevant to the active file: Python fo
 ## Installation
 
 Download the current installer or portable ZIP from the [GitHub Releases page](https://github.com/ahamdmurad02-dev/codebox-x/releases). Run the Windows installer, or extract the portable ZIP and start `CodeBoxX.exe`.
+
+## CodeBox X Agent
+
+Open **Agent** from the Explorer sidebar, toolbar, welcome actions, or the View menu. The Agent can chat about the project without workspace access, but it cannot read project files until the user explicitly chooses **Allow Workspace Read**. When allowed, CodeBox X sends a bounded snapshot of safe text files to Gemini; protected folders, binary files, `.env` files, private-key files, and settings are excluded, while values resembling API keys, tokens, passwords, and secrets are redacted before they leave the device.
+
+The Agent can analyze and search the approved workspace and request a structured file-change plan. It shows the proposed operations and modified files before any write occurs. **Accept Changes** is required to apply a plan, deletion and large project-wide plans require additional confirmation, and **Undo Agent Changes** restores the most recently accepted Agent changes. Agent access to Run Active File and Build Workspace also uses the existing CodeBox X controls only after confirmation; it never installs packages or sends a terminal command automatically.
 
 ## Updating CodeBox X
 
@@ -82,7 +89,7 @@ MPM detects Python, Node.js/TypeScript, and .NET workspaces and exposes dependen
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for v1.2.1 release notes.
+See [CHANGELOG.md](CHANGELOG.md) for v1.2.2 release notes.
 
 ## License
 
