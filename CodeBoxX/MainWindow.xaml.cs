@@ -27,6 +27,7 @@ public partial class MainWindow : Window
     private readonly PythonPreviewSession _pythonPreview = new();
     private readonly MpmService _mpm = new();
     private readonly WebsitePublishService _websitePublisher = new();
+    private readonly UpdateService _updates = new();
     private long _visibleTerminalSessionId;
     private readonly ExtensionMarketplaceService _extensions;
     private readonly GeminiService _gemini;
@@ -1057,7 +1058,12 @@ public partial class MainWindow : Window
         if (!_isFullScreen) { _priorWindowState = WindowState; _priorWindowStyle = WindowStyle; WindowStyle = WindowStyle.None; WindowState = WindowState.Maximized; _isFullScreen = true; } else { WindowStyle = _priorWindowStyle; WindowState = _priorWindowState; _isFullScreen = false; }
     }
     private void Shortcuts_Click(object sender, RoutedEventArgs e) => MessageBox.Show("Ctrl+N   New file\nCtrl+O   Open file\nCtrl+Shift+O   Open folder\nCtrl+S   Save\nCtrl+Shift+S   Save as\nCtrl+W   Close tab\nCtrl+H   Find / replace\nCtrl+Z / Ctrl+Y   Undo / redo\nF5   Run active file\nCtrl+F5   Restart active run\nShift+F5   Stop process\nF11   Full screen\nCtrl+`   Focus terminal", "Keyboard Shortcuts", MessageBoxButton.OK, MessageBoxImage.Information);
-    private void About_Click(object sender, RoutedEventArgs e) => MessageBox.Show("CodeBox X\nVersion 1.2.1\nA lightweight local Windows development workspace.", "About CodeBox X", MessageBoxButton.OK, MessageBoxImage.Information);
+    private void UpdateCodeBoxX_Click(object sender, RoutedEventArgs e)
+    {
+        var updateWindow = new UpdateWindow(_updates) { Owner = this };
+        updateWindow.ShowDialog();
+    }
+    private void About_Click(object sender, RoutedEventArgs e) => new AboutWindow(_updates) { Owner = this }.ShowDialog();
     private void Exit_Click(object sender, RoutedEventArgs e) => Close();
     private void Window_KeyDown(object sender, KeyEventArgs e)
     {
@@ -1089,6 +1095,7 @@ public partial class MainWindow : Window
         _pythonPreview.Dispose();
         _mpm.Dispose();
         _gemini.Dispose();
+        _updates.Dispose();
         Stop_Click(this, new RoutedEventArgs());
         _settings.Save();
     }

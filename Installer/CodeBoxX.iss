@@ -5,6 +5,9 @@
 #define AppVersion "1.2.1"
 #define AppPublisher "CodeBox X"
 #define AppExeName "CodeBoxX.exe"
+#ifndef PublishDir
+  #define PublishDir "..\\publish\\win-x64-selfcontained"
+#endif
 
 [Setup]
 AppId={{AFA45E3F-9498-4D0B-88D5-2B093F258A3D}
@@ -33,7 +36,7 @@ WizardStyle=modern
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
 
 [Files]
-Source: "..\publish\win-x64-selfcontained\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#PublishDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]

@@ -15,6 +15,7 @@
 | Preview | Desktop HTML/Markdown/JSON/XML preview using WebView2 and a dedicated Python Live Preview panel with Run, Stop, Restart, status, stdout, and stderr. |
 | Developer tools | MPM package management for Python, Node.js/TypeScript, and .NET; local extension Marketplace; syntax themes; linters; and Publish Website ZIP packaging. |
 | AI Assistant | Optional Gemini 3.1 Flash-Lite Assistant with local Windows DPAPI key protection. API keys are never included in source, logs, terminal output, or release packages. |
+| Updates | Native **Update CodeBox X** controls in Help, Settings, and About; official GitHub Release version comparison, release notes, download progress, SHA-256 verification, Windows installer validation, and safe installer handoff. |
 
 ## Run Active File
 
@@ -36,6 +37,10 @@ Language execution requires only the tool relevant to the active file: Python fo
 ## Installation
 
 Download the current installer or portable ZIP from the [GitHub Releases page](https://github.com/ahamdmurad02-dev/codebox-x/releases). Run the Windows installer, or extract the portable ZIP and start `CodeBoxX.exe`.
+
+## Updating CodeBox X
+
+Choose **Update CodeBox X** from **Help**, **Settings**, or the **About** window. The native update dialog checks only the pinned official GitHub Releases API, compares the installed version to the latest release, and displays that release’s notes. Before offering installation, CodeBox X downloads only a trusted GitHub release asset, checks the GitHub-provided SHA-256 digest, and verifies that the result is a Windows executable. If a check, download, validation, or installer handoff fails, the application presents a clear error and does not run an unverified file.
 
 ## Build from Source
 
